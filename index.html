@@ -2,8 +2,10 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Wijaya AC System Ultimate</title>
+<title>Wijaya AC System Ultimate Final</title>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
 body { font-family: Arial; background:#f5f7fb; margin:0; }
@@ -20,7 +22,9 @@ th, td { border-bottom:1px solid #eee; padding:8px; }
 <body>
 <div class="container">
 
-<h2>WIJAYA AC SYSTEM 🔥 ULTIMATE</h2>
+<h2>WIJAYA AC SYSTEM 🔥 FINAL</h2>
+
+<button onclick="exportExcel()">Export Excel</button>
 
 <select id="filterBulan" onchange="render()">
 <option value="all">Semua Bulan</option>
@@ -42,11 +46,11 @@ th, td { border-bottom:1px solid #eee; padding:8px; }
 </div>
 
 <div class="box">
-<h3>Grafik Pendapatan</h3>
+<h3>Grafik</h3>
 <canvas id="chart"></canvas>
 </div>
 
-<!-- INPUT -->
+<!-- INPUT INVOICE -->
 <div class="box">
 <h3>Invoice</h3>
 <input type="date" id="tgl">
@@ -54,12 +58,12 @@ th, td { border-bottom:1px solid #eee; padding:8px; }
 
 <label>Teknisi</label>
 <select multiple id="teknisi">
-<option>Roni</option><option>Budi</option><option>Andi</option>
+<option>Roni</option><option>bayu</option><option>triono</option>
 </select>
 
 <label>Helper</label>
 <select multiple id="helper">
-<option>Andi</option><option>Budi</option><option>Roni</option>
+<option>danu</option><option>bani</option><option>nothing</option>
 </select>
 
 <input type="number" id="qty" placeholder="Qty">
@@ -69,6 +73,7 @@ th, td { border-bottom:1px solid #eee; padding:8px; }
 <button onclick="addInv()">Simpan</button>
 </div>
 
+<!-- PENGELUARAN -->
 <div class="box">
 <h3>Pengeluaran</h3>
 <input type="date" id="exp_tgl">
@@ -77,6 +82,7 @@ th, td { border-bottom:1px solid #eee; padding:8px; }
 <button onclick="addExp()">Tambah</button>
 </div>
 
+<!-- KASBON -->
 <div class="box">
 <h3>Kasbon</h3>
 <select id="kas_nama">
@@ -94,33 +100,35 @@ th, td { border-bottom:1px solid #eee; padding:8px; }
 </div>
 
 <script>
-let inv=JSON.parse(localStorage.getItem("inv"))||[];
-let exp=JSON.parse(localStorage.getItem("exp"))||[];
-let kas=JSON.parse(localStorage.getItem("kas"))||[];
+let inv = JSON.parse(localStorage.getItem("inv")) || [];
+let exp = JSON.parse(localStorage.getItem("exp")) || [];
+let kas = JSON.parse(localStorage.getItem("kas")) || [];
 let chart;
 
-const tPersen=0.15;
-const hPersen=0.07;
+const tPersen = 0.15;
+const hPersen = 0.07;
 
 function getMulti(id){
 return Array.from(document.getElementById(id).selectedOptions).map(o=>o.value);
 }
 
-// ADD
+// ADD DATA
 function addInv(){
-let t=document.getElementById("tgl").value;
-let n=document.getElementById("nama").value;
-let teknisi=getMulti("teknisi");
-let helper=getMulti("helper");
-let qty=+document.getElementById("qty").value;
-let jasa=+document.getElementById("jasa").value * qty;
-let material=+document.getElementById("material").value * qty;
+let t = document.getElementById("tgl").value;
+let n = document.getElementById("nama").value;
+let teknisi = getMulti("teknisi");
+let helper = getMulti("helper");
+let qty = +document.getElementById("qty").value;
+let jasa = +document.getElementById("jasa").value * qty;
+let material = +document.getElementById("material").value * qty;
 
-if(!t||!n||!qty||teknisi.length==0||helper.length==0) return alert("Lengkapi");
+if(!t||!n||!qty||teknisi.length==0||helper.length==0){
+alert("Lengkapi data"); return;
+}
 
-let total=jasa+material;
-let gajiT=(jasa*tPersen)/teknisi.length;
-let gajiH=(jasa*hPersen)/helper.length;
+let total = jasa + material;
+let gajiT = (jasa * tPersen)/teknisi.length;
+let gajiH = (jasa * hPersen)/helper.length;
 
 inv.push({t,n,teknisi,helper,jasa,material,total,gajiT,gajiH});
 localStorage.setItem("inv",JSON.stringify(inv));
@@ -128,11 +136,11 @@ render();
 }
 
 function addExp(){
-let t=document.getElementById("exp_tgl").value;
-let n=document.getElementById("exp_nama").value;
-let j=+document.getElementById("exp_jumlah").value;
+let t = document.getElementById("exp_tgl").value;
+let n = document.getElementById("exp_nama").value;
+let j = +document.getElementById("exp_jumlah").value;
 
-if(!t||!n||!j) return alert("Isi pengeluaran");
+if(!t||!n||!j){ alert("Isi pengeluaran"); return; }
 
 exp.push({t,n,j});
 localStorage.setItem("exp",JSON.stringify(exp));
@@ -140,8 +148,10 @@ render();
 }
 
 function addKas(){
-let n=document.getElementById("kas_nama").value;
-let j=+document.getElementById("kas_jumlah").value;
+let n = document.getElementById("kas_nama").value;
+let j = +document.getElementById("kas_jumlah").value;
+
+if(!j){ alert("Isi kasbon"); return; }
 
 kas.push({n,j,t:new Date().toISOString().slice(0,10)});
 localStorage.setItem("kas",JSON.stringify(kas));
@@ -149,13 +159,13 @@ render();
 }
 
 // DELETE
-function delInv(i){inv.splice(i,1);localStorage.setItem("inv",JSON.stringify(inv));render();}
-function delExp(i){exp.splice(i,1);localStorage.setItem("exp",JSON.stringify(exp));render();}
+function delInv(i){ inv.splice(i,1); localStorage.setItem("inv",JSON.stringify(inv)); render(); }
+function delExp(i){ exp.splice(i,1); localStorage.setItem("exp",JSON.stringify(exp)); render(); }
 
 // RENDER
 function render(){
 
-let bulan=document.getElementById("filterBulan").value;
+let bulan = document.getElementById("filterBulan").value;
 
 let omzet=0,gaji=0,pengeluaran=0;
 let jasaT=0,materialT=0;
@@ -163,13 +173,13 @@ let gajiOrang={},kasOrang={};
 let saldo=0;
 let jurnal=[];
 
-// KASBON
+// kasbon
 kas.forEach(k=>{
 kasOrang[k.n]=(kasOrang[k.n]||0)+k.j;
 jurnal.push({t:k.t,ket:"Kasbon "+k.n,m:0,k:k.j});
 });
 
-// INVOICE
+// invoice
 let htmlInv="<table><tr><th>Tgl</th><th>Nama</th><th>Teknisi</th><th>Helper</th><th>Total</th><th>Aksi</th></tr>";
 
 inv.forEach((d,i)=>{
@@ -206,7 +216,7 @@ jurnal.push({t:d.t,ket:"Gaji",m:0,k:(d.gajiT+d.gajiH)});
 htmlInv+="</table>";
 document.getElementById("invTable").innerHTML=htmlInv;
 
-// EXP
+// pengeluaran
 let htmlExp="<table><tr><th>Tgl</th><th>Nama</th><th>Jumlah</th><th>Aksi</th></tr>";
 
 exp.forEach((e,i)=>{
@@ -228,19 +238,18 @@ jurnal.push({t:e.t,ket:e.n,m:0,k:e.j});
 htmlExp+="</table>";
 document.getElementById("expTable").innerHTML=htmlExp;
 
-// HITUNG
+// KPI
 let fix=3700000;
 let profit=omzet-(gaji+pengeluaran+fix);
 let valuasi=profit*36;
 
-// KPI
 document.getElementById("omzet").innerText="Rp "+omzet.toLocaleString();
 document.getElementById("pengeluaran").innerText="Rp "+(pengeluaran+fix).toLocaleString();
 document.getElementById("gaji").innerText="Rp "+gaji.toLocaleString();
 document.getElementById("profit").innerText="Rp "+profit.toLocaleString();
 document.getElementById("valuasi").innerText="Rp "+valuasi.toLocaleString();
 
-// GAJI
+// laporan gaji
 let gajiHTML="<table><tr><th>Nama</th><th>Gaji</th><th>Kasbon</th><th>Sisa</th></tr>";
 for(let n in gajiOrang){
 let kasbon=kasOrang[n]||0;
@@ -256,7 +265,7 @@ gajiHTML+=`<tr>
 gajiHTML+="</table>";
 document.getElementById("lapGaji").innerHTML=gajiHTML;
 
-// JURNAL
+// jurnal
 jurnal.sort((a,b)=> new Date(a.t)-new Date(b.t));
 
 let jHTML="<table><tr><th>Tgl</th><th>Ket</th><th>Masuk</th><th>Keluar</th><th>Saldo</th></tr>";
@@ -276,7 +285,7 @@ jHTML+="</table>";
 document.getElementById("jurnal").innerHTML=jHTML;
 document.getElementById("saldoJalan").innerText="Rp "+saldo.toLocaleString();
 
-// CHART
+// chart
 if(chart) chart.destroy();
 chart=new Chart(document.getElementById("chart"),{
 type:'bar',
@@ -285,6 +294,38 @@ labels:["Jasa","Material"],
 datasets:[{label:"Pendapatan",data:[jasaT,materialT]}]
 }
 });
+}
+
+// EXPORT EXCEL
+function exportExcel(){
+
+let bulan=document.getElementById("filterBulan").value;
+
+let wb=XLSX.utils.book_new();
+
+// ===== INVOICE =====
+let invData=[["Tanggal","Customer","Teknisi","Helper","Jasa","Material","Total"]];
+inv.forEach(d=>{
+let tgl=new Date(d.t);
+if(bulan==="all"||tgl.getMonth()==bulan){
+invData.push([d.t,d.n,d.teknisi.join(","),d.helper.join(","),d.jasa,d.material,d.total]);
+}
+});
+XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(invData),"Invoice");
+
+// ===== EXPENSE =====
+let expData=[["Tanggal","Keterangan","Jumlah"]];
+exp.forEach(e=>{
+let tgl=new Date(e.t);
+if(bulan==="all"||tgl.getMonth()==bulan){
+expData.push([e.t,e.n,e.j]);
+}
+});
+XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(expData),"Pengeluaran");
+
+// ===== SAVE =====
+XLSX.writeFile(wb,"Laporan_Wijaya_AC.xlsx");
+
 }
 
 render();
