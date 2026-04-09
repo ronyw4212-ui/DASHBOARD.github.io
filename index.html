@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Wijaya AC System Stable</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body { font-family: Arial; background:#f5f7fb; margin:0; }
+.container { padding:20px; }
+.cards { display:grid; grid-template-columns: repeat(6,1fr); gap:10px; }
+.card, .box { background:white; padding:15px; border-radius:10px; margin-top:10px; }
+input, select { width:100%; padding:8px; margin:5px 0; }
+button { background:#3498db; color:white; padding:8px; border:none; cursor:pointer; }
+table { width:100%; border-collapse:collapse; margin-top:10px; }
+th, td { border-bottom:1px solid #eee; padding:8px; }
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h2>WIJAYA AC SYSTEM 🔥 STABLE</h2>
+
+<div class="cards">
+<div class="card"><h4>Omzet</h4><h2 id="omzet">0</h2></div>
+<div class="card"><h4>Pengeluaran</h4><h2 id="pengeluaran">0</h2></div>
+<div class="card"><h4>Gaji</h4><h2 id="gaji">0</h2></div>
+<div class="card"><h4>Profit</h4><h2 id="profit">0</h2></div>
+<div class="card"><h4>Saldo Jalan</h4><h2 id="saldoJalan">0</h2></div>
+<div class="card"><h4>Valuasi</h4><h2 id="valuasi">0</h2></div>
+</div>
+
+<!-- INPUT INVOICE -->
+<div class="box">
+<h3>Invoice</h3>
+<input type="date" id="inv_tanggal">
+<input type="text" id="inv_nama" placeholder="Customer">
+
+<label>Teknisi</label>
+<select multiple id="inv_teknisi">
+<option>Roni</option><option>Budi</option><option>Andi</option>
+</select>
+
+<label>Helper</label>
+<select multiple id="inv_helper">
+<option>Andi</option><option>Budi</option><option>Roni</option>
+</select>
+
+<input type="number" id="inv_qty" placeholder="Qty">
+<input type="number" id="inv_jasa" placeholder="Harga Jasa">
+<input type="number" id="inv_material" placeholder="Harga Material">
+
+<button onclick="addInvoice()">Simpan</button>
+</div>
+
+<!-- PENGELUARAN -->
+<div class="box">
+<h3>Pengeluaran</h3>
+<input type="date" id="exp_tanggal">
+<input type="text" id="exp_nama">
+<input type="number" id="exp_jumlah">
+<button onclick="addExpense()">Tambah</button>
+</div>
+
+<!-- KASBON -->
+<div class="box">
+<h3>Kasbon Teknisi</h3>
+<select id="kasbon_nama">
+<option>Roni</option><option>Budi</option><option>Andi</option>
+</select>
+<input type="number" id="kasbon_jumlah">
+<button onclick="addKasbon()">Tambah</button>
+</div>
+
+<div class="box"><h3>Laporan Gaji</h3><div id="lapGaji"></div></div>
+<div class="box"><h3>Pengeluaran</h3><div id="tableExpense"></div></div>
+<div class="box"><h3>Invoice</h3><div id="tableInvoice"></div></div>
+<div class="box"><h3>Jurnal</h3><div id="jurnal"></div></div>
+
+</div>
+
+<script>
+let invoices = JSON.parse(localStorage.getItem("inv")) || [];
+let expenses = JSON.parse(localStorage.getItem("exp")) || [];
+let kasbon = JSON.parse(localStorage.getItem("kasbon")) || [];
+
+const persenTeknisi = 0.15;
+const persenHelper = 0.07;
+
+function getMulti(id){
+return Array.from(document.getElementById(id).selectedOptions).map(o=>o.value);
+}
+
+// ADD INVOICE
+function addInvoice(){
+let t=document.getElementById("inv_tanggal").value;
+let n=document.getElementById("inv_nama").value;
+let teknisi=getMulti("inv_teknisi");
+let helper=getMulti("inv_helper");
+let qty=+document.getElementById("inv_qty").value;
+let jasa=+document.getElementById("inv_jasa").value * qty;
+let material=+document.getElementById("inv_material").value * qty;
+
+if(!t||!n||!qty||teknisi.length==0||helper.length==0){
+return alert("Lengkapi data");
+}
+
+let total=jasa+material;
+
+let gajiT=(jasa*persenTeknisi)/teknisi.length;
+let gajiH=(jasa*persenHelper)/helper.length;
+
+invoices.push({tanggal:t,nama:n,jasa,material,total,teknisi,helper,gajiT,gajiH});
+localStorage.setItem("inv",JSON.stringify(invoices));
+render();
+}
+
+// ADD EXPENSE
+function addExpense(){
+let t=document.getElementById("exp_tanggal").value;
+let n=document.getElementById("exp_nama").value;
+let j=+document.getElementById("exp_jumlah").value;
+
+if(!t||!n||!j) return alert("Isi pengeluaran");
+
+expenses.push({tanggal:t,nama:n,jumlah:j});
+localStorage.setItem("exp",JSON.stringify(expenses));
+render();
+}
+
+// ADD KASBON
+function addKasbon(){
+let n=document.getElementById("kasbon_nama").value;
+let j=+document.getElementById("kasbon_jumlah").value;
+
+if(!j) return alert("Isi kasbon");
+
+kasbon.push({nama:n,jumlah:j,tanggal:new Date().toISOString().slice(0,10)});
+localStorage.setItem("kasbon",JSON.stringify(kasbon));
+render();
+}
+
+// DELETE
+function delInv(i){ invoices.splice(i,1); localStorage.setItem("inv",JSON.stringify(invoices)); render(); }
+function delExp(i){ expenses.splice(i,1); localStorage.setItem("exp",JSON.stringify(expenses)); render(); }
+
+function render(){
+
+let omzet=0,gaji=0,pengeluaran=0;
+let gajiOrang={}, kasbonOrang={};
+
+// KASBON
+kasbon.forEach(k=>{
+kasbonOrang[k.nama]=(kasbonOrang[k.nama]||0)+k.jumlah;
+});
+
+// INVOICE
+let htmlInv="<table><tr><th>Tanggal</th><th>Nama</th><th>Teknisi</th><th>Helper</th><th>Total</th><th>Aksi</th></tr>";
+
+invoices.forEach((d,i)=>{
+omzet+=d.total;
+
+d.teknisi.forEach(x=>{
+gaji+=d.gajiT;
+gajiOrang[x]=(gajiOrang[x]||0)+d.gajiT;
+});
+
+d.helper.forEach(x=>{
+gaji+=d.gajiH;
+gajiOrang[x]=(gajiOrang[x]||0)+d.gajiH;
+});
+
+htmlInv+=`<tr>
+<td>${d.tanggal}</td>
+<td>${d.nama}</td>
+<td>${d.teknisi.join(", ")}</td>
+<td>${d.helper.join(", ")}</td>
+<td>Rp ${d.total.toLocaleString()}</td>
+<td><button onclick="delInv(${i})">Hapus</button></td>
+</tr>`;
+});
+htmlInv+="</table>";
+document.getElementById("tableInvoice").innerHTML=htmlInv;
+
+// EXPENSE
+let htmlExp="<table><tr><th>Tanggal</th><th>Nama</th><th>Jumlah</th><th>Aksi</th></tr>";
+
+expenses.forEach((e,i)=>{
+pengeluaran+=e.jumlah;
+
+htmlExp+=`<tr>
+<td>${e.tanggal}</td>
+<td>${e.nama}</td>
+<td>Rp ${e.jumlah.toLocaleString()}</td>
+<td><button onclick="delExp(${i})">Hapus</button></td>
+</tr>`;
+});
+htmlExp+="</table>";
+document.getElementById("tableExpense").innerHTML=htmlExp;
+
+// HITUNG
+let fix=3700000;
+let profit=omzet-(gaji+pengeluaran+fix);
+let valuasi=profit*36;
+
+// KPI
+document.getElementById("omzet").innerText="Rp "+omzet.toLocaleString();
+document.getElementById("pengeluaran").innerText="Rp "+(pengeluaran+fix).toLocaleString();
+document.getElementById("gaji").innerText="Rp "+gaji.toLocaleString();
+document.getElementById("profit").innerText="Rp "+profit.toLocaleString();
+document.getElementById("valuasi").innerText="Rp "+valuasi.toLocaleString();
+
+// LAPORAN GAJI
+let htmlGaji="<table><tr><th>Nama</th><th>Gaji</th><th>Kasbon</th><th>Sisa</th></tr>";
+for(let n in gajiOrang){
+let kas=kasbonOrang[n]||0;
+let sisa=gajiOrang[n]-kas;
+
+htmlGaji+=`<tr>
+<td>${n}</td>
+<td>Rp ${gajiOrang[n].toLocaleString()}</td>
+<td>Rp ${kas.toLocaleString()}</td>
+<td>Rp ${sisa.toLocaleString()}</td>
+</tr>`;
+}
+htmlGaji+="</table>";
+document.getElementById("lapGaji").innerHTML=htmlGaji;
+
+// JURNAL
+let saldo=0;
+let data=[];
+
+invoices.forEach(d=>{
+data.push({tgl:d.tanggal,ket:"Pendapatan",m:d.total,k:0});
+data.push({tgl:d.tanggal,ket:"Gaji",m:0,k:(d.gajiT+d.gajiH)});
+});
+
+expenses.forEach(e=>{
+data.push({tgl:e.tanggal,ket:e.nama,m:0,k:e.jumlah});
+});
+
+kasbon.forEach(k=>{
+data.push({tgl:k.tanggal,ket:"Kasbon "+k.nama,m:0,k:k.jumlah});
+});
+
+data.sort((a,b)=> new Date(a.tgl)-new Date(b.tgl));
+
+let jhtml="<table><tr><th>Tanggal</th><th>Ket</th><th>Masuk</th><th>Keluar</th><th>Saldo</th></tr>";
+
+data.forEach(d=>{
+saldo+=d.m-d.k;
+jhtml+=`<tr>
+<td>${d.tgl}</td>
+<td>${d.ket}</td>
+<td>${d.m? "Rp "+d.m.toLocaleString():"-"}</td>
+<td>${d.k? "Rp "+d.k.toLocaleString():"-"}</td>
+<td>Rp ${saldo.toLocaleString()}</td>
+</tr>`;
+});
+
+jhtml+="</table>";
+document.getElementById("jurnal").innerHTML=jhtml;
+document.getElementById("saldoJalan").innerText="Rp "+saldo.toLocaleString();
+
+}
+
+render();
+</script>
+
+</body>
+</html>
