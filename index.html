@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Wijaya AC System Stable</title>
+<title>Wijaya AC System Ultimate</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -20,7 +20,17 @@ th, td { border-bottom:1px solid #eee; padding:8px; }
 <body>
 <div class="container">
 
-<h2>WIJAYA AC SYSTEM 🔥 STABLE</h2>
+<h2>WIJAYA AC SYSTEM 🔥 ULTIMATE</h2>
+
+<select id="filterBulan" onchange="render()">
+<option value="all">Semua Bulan</option>
+<option value="0">Jan</option><option value="1">Feb</option>
+<option value="2">Mar</option><option value="3">Apr</option>
+<option value="4">Mei</option><option value="5">Jun</option>
+<option value="6">Jul</option><option value="7">Agu</option>
+<option value="8">Sep</option><option value="9">Okt</option>
+<option value="10">Nov</option><option value="11">Des</option>
+</select>
 
 <div class="cards">
 <div class="card"><h4>Omzet</h4><h2 id="omzet">0</h2></div>
@@ -31,173 +41,192 @@ th, td { border-bottom:1px solid #eee; padding:8px; }
 <div class="card"><h4>Valuasi</h4><h2 id="valuasi">0</h2></div>
 </div>
 
-<!-- INPUT INVOICE -->
+<div class="box">
+<h3>Grafik Pendapatan</h3>
+<canvas id="chart"></canvas>
+</div>
+
+<!-- INPUT -->
 <div class="box">
 <h3>Invoice</h3>
-<input type="date" id="inv_tanggal">
-<input type="text" id="inv_nama" placeholder="Customer">
+<input type="date" id="tgl">
+<input type="text" id="nama" placeholder="Customer">
 
 <label>Teknisi</label>
-<select multiple id="inv_teknisi">
+<select multiple id="teknisi">
 <option>Roni</option><option>Budi</option><option>Andi</option>
 </select>
 
 <label>Helper</label>
-<select multiple id="inv_helper">
+<select multiple id="helper">
 <option>Andi</option><option>Budi</option><option>Roni</option>
 </select>
 
-<input type="number" id="inv_qty" placeholder="Qty">
-<input type="number" id="inv_jasa" placeholder="Harga Jasa">
-<input type="number" id="inv_material" placeholder="Harga Material">
+<input type="number" id="qty" placeholder="Qty">
+<input type="number" id="jasa" placeholder="Harga Jasa">
+<input type="number" id="material" placeholder="Harga Material">
 
-<button onclick="addInvoice()">Simpan</button>
+<button onclick="addInv()">Simpan</button>
 </div>
 
-<!-- PENGELUARAN -->
 <div class="box">
 <h3>Pengeluaran</h3>
-<input type="date" id="exp_tanggal">
+<input type="date" id="exp_tgl">
 <input type="text" id="exp_nama">
 <input type="number" id="exp_jumlah">
-<button onclick="addExpense()">Tambah</button>
+<button onclick="addExp()">Tambah</button>
 </div>
 
-<!-- KASBON -->
 <div class="box">
-<h3>Kasbon Teknisi</h3>
-<select id="kasbon_nama">
+<h3>Kasbon</h3>
+<select id="kas_nama">
 <option>Roni</option><option>Budi</option><option>Andi</option>
 </select>
-<input type="number" id="kasbon_jumlah">
-<button onclick="addKasbon()">Tambah</button>
+<input type="number" id="kas_jumlah">
+<button onclick="addKas()">Tambah</button>
 </div>
 
 <div class="box"><h3>Laporan Gaji</h3><div id="lapGaji"></div></div>
-<div class="box"><h3>Pengeluaran</h3><div id="tableExpense"></div></div>
-<div class="box"><h3>Invoice</h3><div id="tableInvoice"></div></div>
+<div class="box"><h3>Invoice</h3><div id="invTable"></div></div>
+<div class="box"><h3>Pengeluaran</h3><div id="expTable"></div></div>
 <div class="box"><h3>Jurnal</h3><div id="jurnal"></div></div>
 
 </div>
 
 <script>
-let invoices = JSON.parse(localStorage.getItem("inv")) || [];
-let expenses = JSON.parse(localStorage.getItem("exp")) || [];
-let kasbon = JSON.parse(localStorage.getItem("kasbon")) || [];
+let inv=JSON.parse(localStorage.getItem("inv"))||[];
+let exp=JSON.parse(localStorage.getItem("exp"))||[];
+let kas=JSON.parse(localStorage.getItem("kas"))||[];
+let chart;
 
-const persenTeknisi = 0.15;
-const persenHelper = 0.07;
+const tPersen=0.15;
+const hPersen=0.07;
 
 function getMulti(id){
 return Array.from(document.getElementById(id).selectedOptions).map(o=>o.value);
 }
 
-// ADD INVOICE
-function addInvoice(){
-let t=document.getElementById("inv_tanggal").value;
-let n=document.getElementById("inv_nama").value;
-let teknisi=getMulti("inv_teknisi");
-let helper=getMulti("inv_helper");
-let qty=+document.getElementById("inv_qty").value;
-let jasa=+document.getElementById("inv_jasa").value * qty;
-let material=+document.getElementById("inv_material").value * qty;
+// ADD
+function addInv(){
+let t=document.getElementById("tgl").value;
+let n=document.getElementById("nama").value;
+let teknisi=getMulti("teknisi");
+let helper=getMulti("helper");
+let qty=+document.getElementById("qty").value;
+let jasa=+document.getElementById("jasa").value * qty;
+let material=+document.getElementById("material").value * qty;
 
-if(!t||!n||!qty||teknisi.length==0||helper.length==0){
-return alert("Lengkapi data");
-}
+if(!t||!n||!qty||teknisi.length==0||helper.length==0) return alert("Lengkapi");
 
 let total=jasa+material;
+let gajiT=(jasa*tPersen)/teknisi.length;
+let gajiH=(jasa*hPersen)/helper.length;
 
-let gajiT=(jasa*persenTeknisi)/teknisi.length;
-let gajiH=(jasa*persenHelper)/helper.length;
-
-invoices.push({tanggal:t,nama:n,jasa,material,total,teknisi,helper,gajiT,gajiH});
-localStorage.setItem("inv",JSON.stringify(invoices));
+inv.push({t,n,teknisi,helper,jasa,material,total,gajiT,gajiH});
+localStorage.setItem("inv",JSON.stringify(inv));
 render();
 }
 
-// ADD EXPENSE
-function addExpense(){
-let t=document.getElementById("exp_tanggal").value;
+function addExp(){
+let t=document.getElementById("exp_tgl").value;
 let n=document.getElementById("exp_nama").value;
 let j=+document.getElementById("exp_jumlah").value;
 
 if(!t||!n||!j) return alert("Isi pengeluaran");
 
-expenses.push({tanggal:t,nama:n,jumlah:j});
-localStorage.setItem("exp",JSON.stringify(expenses));
+exp.push({t,n,j});
+localStorage.setItem("exp",JSON.stringify(exp));
 render();
 }
 
-// ADD KASBON
-function addKasbon(){
-let n=document.getElementById("kasbon_nama").value;
-let j=+document.getElementById("kasbon_jumlah").value;
+function addKas(){
+let n=document.getElementById("kas_nama").value;
+let j=+document.getElementById("kas_jumlah").value;
 
-if(!j) return alert("Isi kasbon");
-
-kasbon.push({nama:n,jumlah:j,tanggal:new Date().toISOString().slice(0,10)});
-localStorage.setItem("kasbon",JSON.stringify(kasbon));
+kas.push({n,j,t:new Date().toISOString().slice(0,10)});
+localStorage.setItem("kas",JSON.stringify(kas));
 render();
 }
 
 // DELETE
-function delInv(i){ invoices.splice(i,1); localStorage.setItem("inv",JSON.stringify(invoices)); render(); }
-function delExp(i){ expenses.splice(i,1); localStorage.setItem("exp",JSON.stringify(expenses)); render(); }
+function delInv(i){inv.splice(i,1);localStorage.setItem("inv",JSON.stringify(inv));render();}
+function delExp(i){exp.splice(i,1);localStorage.setItem("exp",JSON.stringify(exp));render();}
 
+// RENDER
 function render(){
 
+let bulan=document.getElementById("filterBulan").value;
+
 let omzet=0,gaji=0,pengeluaran=0;
-let gajiOrang={}, kasbonOrang={};
+let jasaT=0,materialT=0;
+let gajiOrang={},kasOrang={};
+let saldo=0;
+let jurnal=[];
 
 // KASBON
-kasbon.forEach(k=>{
-kasbonOrang[k.nama]=(kasbonOrang[k.nama]||0)+k.jumlah;
+kas.forEach(k=>{
+kasOrang[k.n]=(kasOrang[k.n]||0)+k.j;
+jurnal.push({t:k.t,ket:"Kasbon "+k.n,m:0,k:k.j});
 });
 
 // INVOICE
-let htmlInv="<table><tr><th>Tanggal</th><th>Nama</th><th>Teknisi</th><th>Helper</th><th>Total</th><th>Aksi</th></tr>";
+let htmlInv="<table><tr><th>Tgl</th><th>Nama</th><th>Teknisi</th><th>Helper</th><th>Total</th><th>Aksi</th></tr>";
 
-invoices.forEach((d,i)=>{
+inv.forEach((d,i)=>{
+let tgl=new Date(d.t);
+
+if(bulan==="all"||tgl.getMonth()==bulan){
+
 omzet+=d.total;
+jasaT+=d.jasa;
+materialT+=d.material;
 
 d.teknisi.forEach(x=>{
 gaji+=d.gajiT;
 gajiOrang[x]=(gajiOrang[x]||0)+d.gajiT;
 });
-
 d.helper.forEach(x=>{
 gaji+=d.gajiH;
 gajiOrang[x]=(gajiOrang[x]||0)+d.gajiH;
 });
 
 htmlInv+=`<tr>
-<td>${d.tanggal}</td>
-<td>${d.nama}</td>
-<td>${d.teknisi.join(", ")}</td>
-<td>${d.helper.join(", ")}</td>
+<td>${d.t}</td>
+<td>${d.n}</td>
+<td>${d.teknisi.join(",")}</td>
+<td>${d.helper.join(",")}</td>
 <td>Rp ${d.total.toLocaleString()}</td>
 <td><button onclick="delInv(${i})">Hapus</button></td>
 </tr>`;
+
+jurnal.push({t:d.t,ket:"Pendapatan",m:d.total,k:0});
+jurnal.push({t:d.t,ket:"Gaji",m:0,k:(d.gajiT+d.gajiH)});
+}
 });
 htmlInv+="</table>";
-document.getElementById("tableInvoice").innerHTML=htmlInv;
+document.getElementById("invTable").innerHTML=htmlInv;
 
-// EXPENSE
-let htmlExp="<table><tr><th>Tanggal</th><th>Nama</th><th>Jumlah</th><th>Aksi</th></tr>";
+// EXP
+let htmlExp="<table><tr><th>Tgl</th><th>Nama</th><th>Jumlah</th><th>Aksi</th></tr>";
 
-expenses.forEach((e,i)=>{
-pengeluaran+=e.jumlah;
+exp.forEach((e,i)=>{
+let tgl=new Date(e.t);
+
+if(bulan==="all"||tgl.getMonth()==bulan){
+pengeluaran+=e.j;
 
 htmlExp+=`<tr>
-<td>${e.tanggal}</td>
-<td>${e.nama}</td>
-<td>Rp ${e.jumlah.toLocaleString()}</td>
+<td>${e.t}</td>
+<td>${e.n}</td>
+<td>Rp ${e.j.toLocaleString()}</td>
 <td><button onclick="delExp(${i})">Hapus</button></td>
 </tr>`;
+
+jurnal.push({t:e.t,ket:e.n,m:0,k:e.j});
+}
 });
 htmlExp+="</table>";
-document.getElementById("tableExpense").innerHTML=htmlExp;
+document.getElementById("expTable").innerHTML=htmlExp;
 
 // HITUNG
 let fix=3700000;
@@ -211,58 +240,51 @@ document.getElementById("gaji").innerText="Rp "+gaji.toLocaleString();
 document.getElementById("profit").innerText="Rp "+profit.toLocaleString();
 document.getElementById("valuasi").innerText="Rp "+valuasi.toLocaleString();
 
-// LAPORAN GAJI
-let htmlGaji="<table><tr><th>Nama</th><th>Gaji</th><th>Kasbon</th><th>Sisa</th></tr>";
+// GAJI
+let gajiHTML="<table><tr><th>Nama</th><th>Gaji</th><th>Kasbon</th><th>Sisa</th></tr>";
 for(let n in gajiOrang){
-let kas=kasbonOrang[n]||0;
-let sisa=gajiOrang[n]-kas;
+let kasbon=kasOrang[n]||0;
+let sisa=gajiOrang[n]-kasbon;
 
-htmlGaji+=`<tr>
+gajiHTML+=`<tr>
 <td>${n}</td>
 <td>Rp ${gajiOrang[n].toLocaleString()}</td>
-<td>Rp ${kas.toLocaleString()}</td>
+<td>Rp ${kasbon.toLocaleString()}</td>
 <td>Rp ${sisa.toLocaleString()}</td>
 </tr>`;
 }
-htmlGaji+="</table>";
-document.getElementById("lapGaji").innerHTML=htmlGaji;
+gajiHTML+="</table>";
+document.getElementById("lapGaji").innerHTML=gajiHTML;
 
 // JURNAL
-let saldo=0;
-let data=[];
+jurnal.sort((a,b)=> new Date(a.t)-new Date(b.t));
 
-invoices.forEach(d=>{
-data.push({tgl:d.tanggal,ket:"Pendapatan",m:d.total,k:0});
-data.push({tgl:d.tanggal,ket:"Gaji",m:0,k:(d.gajiT+d.gajiH)});
-});
+let jHTML="<table><tr><th>Tgl</th><th>Ket</th><th>Masuk</th><th>Keluar</th><th>Saldo</th></tr>";
 
-expenses.forEach(e=>{
-data.push({tgl:e.tanggal,ket:e.nama,m:0,k:e.jumlah});
-});
-
-kasbon.forEach(k=>{
-data.push({tgl:k.tanggal,ket:"Kasbon "+k.nama,m:0,k:k.jumlah});
-});
-
-data.sort((a,b)=> new Date(a.tgl)-new Date(b.tgl));
-
-let jhtml="<table><tr><th>Tanggal</th><th>Ket</th><th>Masuk</th><th>Keluar</th><th>Saldo</th></tr>";
-
-data.forEach(d=>{
-saldo+=d.m-d.k;
-jhtml+=`<tr>
-<td>${d.tgl}</td>
-<td>${d.ket}</td>
-<td>${d.m? "Rp "+d.m.toLocaleString():"-"}</td>
-<td>${d.k? "Rp "+d.k.toLocaleString():"-"}</td>
+jurnal.forEach(j=>{
+saldo+=j.m-j.k;
+jHTML+=`<tr>
+<td>${j.t}</td>
+<td>${j.ket}</td>
+<td>${j.m? "Rp "+j.m.toLocaleString():"-"}</td>
+<td>${j.k? "Rp "+j.k.toLocaleString():"-"}</td>
 <td>Rp ${saldo.toLocaleString()}</td>
 </tr>`;
 });
 
-jhtml+="</table>";
-document.getElementById("jurnal").innerHTML=jhtml;
+jHTML+="</table>";
+document.getElementById("jurnal").innerHTML=jHTML;
 document.getElementById("saldoJalan").innerText="Rp "+saldo.toLocaleString();
 
+// CHART
+if(chart) chart.destroy();
+chart=new Chart(document.getElementById("chart"),{
+type:'bar',
+data:{
+labels:["Jasa","Material"],
+datasets:[{label:"Pendapatan",data:[jasaT,materialT]}]
+}
+});
 }
 
 render();
