@@ -105,8 +105,8 @@ let exp = JSON.parse(localStorage.getItem("exp")) || [];
 let kas = JSON.parse(localStorage.getItem("kas")) || [];
 let chart;
 
-const tPersen = 0.25;
-const hPersen = 0.07;
+const tPersen = 0.30;
+const hPersen = 0.10;
 
 function getMulti(id){
 return Array.from(document.getElementById(id).selectedOptions).map(o=>o.value);
